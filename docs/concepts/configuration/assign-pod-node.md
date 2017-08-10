@@ -248,6 +248,7 @@ value is `another-node-label-value` should be preferred.
 这个亲和规则意思是，Pod只能调度到包含标签 `kubernetes.io/e2e-az-name` 的节点上，而且该标签的值必须为 `e2e-az1` 或者 `e2e-az2`。 同时
 在满足规则的节点中，更倾向使用包含标签 `another-node-label-key` = `another-node-label-value` 的节点。
 
+<!--
 You can see the operator `In` being used in the example. The new node affinity syntax supports the following operators: `In`, `NotIn`, `Exists`, `DoesNotExist`, `Gt`, `Lt`.
 There is no explicit "node anti-affinity" concept, but `NotIn` and `DoesNotExist` give that behavior.
 
@@ -260,7 +261,21 @@ If you specify multiple `matchExpressions` associated with `nodeSelectorTerms`, 
 
 For more information on node affinity, see the design doc
 [here](https://git.k8s.io/community/contributors/design-proposals/nodeaffinity.md).
+-->
 
+例子中使用了 `In` 操作符， 新的节点亲和性语法支持下列操作符： `In`、 `NotIn`、 `Exists`、 `DoesNotExist`、 `Gt`、 `Lt`。
+我们没有明确的 “节点反亲和性” 概念， 但借助 `NotIn` 与 `DoesNotExist` 可实现这种规则。
+
+若同时定义了 `nodeSelector` 与 `nodeAffinity`， 为Pod选定的节点必须同时满足 *全部* 规则。
+
+若在 `nodeAffinity` 中定义了多个 `nodeSelectorTerms` ，则 `nodeSelectorTerms` **其中之一** 满足即可，即 `nodeSelectorTerms` 之间是或的关系。
+
+若在 `nodeSelectorTerms` 中定义了多个 `matchExpressions` ， 则多个 `matchExpressions` **必须全部** 满足，即 `matchExpressions` 之间是与的关系。
+
+关于更多的节点亲和性资料，
+[参考文档](https://git.k8s.io/community/contributors/design-proposals/nodeaffinity.md)。
+
+<!--
 ### Inter-pod affinity and anti-affinity (beta feature)
 
 Inter-pod affinity and anti-affinity were introduced in Kubernetes 1.4.
@@ -273,6 +288,20 @@ a label selector over pod labels must specify which namespaces the selector shou
 like node, rack, cloud provider zone, cloud provider region, etc. You express it using a `topologyKey` which is the
 key for the node label that the system uses to denote such a topology domain, e.g. see the label keys listed above
 in the section [Interlude: built-in node labels](#interlude-built-in-node-labels).
+-->
+
+### Pod间亲和性与反亲和性（beta版特性）
+
+Pod间亲和性与反亲和性于Kubernetes 1.4引入。
+该特性使你能够 *基于节点上正在运行的Pod的标签* 为Pod设置节点调度的约束规则，而不是基于节点的标签。 这种规则形式是 “该Pod应该（或者在反亲和中是 不应该）运行在X上，且X上运行着一个或多个符合规则Y的Pod”。
+Y表示为一个LabelSelector，其中包括一个相关的namespace列表（或全部的namespace）；与节点不同，因为Pod需要运行在namespace中（因此，Pod的标签要有明确的namespace），
+
+a label selector over pod labels must specify which namespaces the selector should apply to. X在概念上是节点、机架、云提供商zone、云提供商region等。
+like node, rack, cloud provider zone, cloud provider region, etc. You express it using a `topologyKey` which is the
+key for the node label that the system uses to denote such a topology domain, e.g. see the label keys listed above
+in the section [Interlude: built-in node labels](#interlude-built-in-node-labels).
+
+
 
 As with node affinity, there are currently two types of pod affinity and anti-affinity, called `requiredDuringSchedulingIgnoredDuringExecution` and
 `preferredDuringSchedulingIgnoredDuringExecution` which denote "hard" vs. "soft" requirements.
