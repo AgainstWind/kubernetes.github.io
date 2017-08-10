@@ -126,7 +126,7 @@ spec:
 
 然后运行`kubectl create -f pod.yaml`命令，Pod就会被调度分配到打标签的节点!可以运行 `kubectl get pods -o wide` 命令，查看Pod被分配到的"NODE"。
 
-
+<!--
 ## Interlude: built-in node labels
 
 In addition to labels you [attach yourself](#step-one-attach-label-to-the-node), nodes come pre-populated
@@ -138,6 +138,7 @@ with a standard set of labels. As of Kubernetes v1.4 these labels are
 * `beta.kubernetes.io/instance-type`
 * `beta.kubernetes.io/os`
 * `beta.kubernetes.io/arch`
+-->
 
 ## 提示:节点内置标签
 
@@ -150,7 +151,7 @@ with a standard set of labels. As of Kubernetes v1.4 these labels are
 * `beta.kubernetes.io/os`
 * `beta.kubernetes.io/arch`
 
-
+<!--
 ## Affinity and anti-affinity
 
 `nodeSelector` provides a very simple way to constrain pods to nodes with particular labels. The affinity/anti-affinity
@@ -161,7 +162,17 @@ feature, currently in beta, greatly expands the types of constraints you can exp
    can't satisfy it, the pod will still be scheduled
 3. you can constrain against labels on other pods running on the node (or other topological domain),
    rather than against labels on the node itself, which allows rules about which pods can and cannot be co-located
+-->
 
+ ## 亲和性与反亲和性
+
+ `nodeSelector` 为把Pod限定在包含特定label的节点上提供了一种简便的方式。 而亲和性/反亲和性则极大的扩展了限定的类型，目前还处于beta阶段。关键性增强特性：
+
+ 1. 语言更具表达性 (不仅仅是"AND of exact match")
+ 2. 规则具有“柔性/偏好”的特点，而不是一条刚性的需求，即使调度器找不出满足规则的节点，Pod依然可以被调度。
+ 3. 对于Pod分配的约束规则，你的规则中可以包括节点上其他Pod（或者其他拓扑域），而不是仅仅可以包含节点的标签。
+
+<!--
 The affinity feature consists of two types of affinity, "node affinity" and "inter-pod affinity/anti-affinity."
 Node affinity is like the existing `nodeSelector` (but with the first two benefits listed above),
 while inter-pod affinity/anti-affinity constrains against pod labels rather than node labels, as
@@ -169,13 +180,26 @@ described in the third item listed above, in addition to having the first and se
 
 `nodeSelector` continues to work as usual, but will eventually be deprecated, as node affinity can express
 everything that `nodeSelector` can express.
+-->
+亲和性包含两种类型，“节点亲和”与“Pod间亲和/反亲和”。节点亲和与 `nodeSelector`类似（但有上面的1、2两个增强特性）。
+而Pod间亲和/反亲和的约束规则可以包括Pod的标签, 这种方式除了具有1、2两个特性外，还具有特性3。
+described in the third item listed above, in addition to having the first and second properties listed above.
 
+`nodeSelector` 目前仍可使用，但最终会被抛弃，节点亲和可以完全替代它。
+
+
+<!--
 ### Node affinity (beta feature)
 
 Node affinity was introduced as alpha in Kubernetes 1.2.
 Node affinity is conceptually similar to `nodeSelector` -- it allows you to constrain which nodes your
 pod is eligible to schedule on, based on labels on the node.
+-->
+### 节点亲和 （beta版特性）
+节点亲和（alpha版）于Kubernetes 1.2引入。
+概念上类似 `nodeSelector` -- 根据节点上的标签，把Pod约束在有资格的节点上。
 
+<!--
 There are currently two types of node affinity, called `requiredDuringSchedulingIgnoredDuringExecution` and
 `preferredDuringSchedulingIgnoredDuringExecution`. You can think of them as "hard" and "soft" respectively,
 in the sense that the former specifies rules that *must* be met for a pod to schedule onto a node (just like
@@ -185,21 +209,44 @@ to how `nodeSelector` works, if labels on a node change at runtime such that the
 met, the pod will still continue to run on the node. In the future we plan to offer
 `requiredDuringSchedulingRequiredDuringExecution` which will be just like `requiredDuringSchedulingIgnoredDuringExecution`
 except that it will evict pods from nodes that cease to satisfy the pods' node affinity requirements.
+-->
+节点亲和目前有两种类型： `requiredDuringSchedulingIgnoredDuringExecution` 与
+`preferredDuringSchedulingIgnoredDuringExecution`。 相应的，前者“硬性”，后者“柔和”，
+前者定义了一些在Pod调度中 *必须满足* 的规则 （类似 `nodeSelector` ，但规则语法更有表达性），后者定义一些 *柔和* 的规则调度器尽力满足但不确保必须满足。 
+名字中的 "IgnoredDuringExecution" 意思是， 若运行时节点的标签发生改变，导致Pod的亲和性规则不再满足，Pod会继续运行在该节点上，
+这点与 `nodeSelector` 一致。未来我们计划提供 `requiredDuringSchedulingRequiredDuringExecution` ，与 `requiredDuringSchedulingIgnoredDuringExecution` 类似，
+但若Pod的亲和规则不再满足，它会销毁该Pod。
 
+<!--
 Thus an example of `requiredDuringSchedulingIgnoredDuringExecution` would be "only run the pod on nodes with Intel CPUs"
 and an example `preferredDuringSchedulingIgnoredDuringExecution` would be "try to run this set of pods in availability
 zone XYZ, but if it's not possible, then allow some to run elsewhere".
+-->
+ `requiredDuringSchedulingIgnoredDuringExecution` 一个例子是“Pod只能运行在使用Intel CPU的节点上” ， `preferredDuringSchedulingIgnoredDuringExecution` 一个例子是
+  “尽量把Pod调度到可用区XYZ中，若不能满足，也可运行在其他地方”。
 
+
+<!--
 Node affinity is specified as field `nodeAffinity` of field `affinity` in the PodSpec.
 
 Here's an example of a pod that uses node affinity:
 
 {% include code.html language="yaml" file="pod-with-node-affinity.yaml" ghlink="/docs/concepts/configuration/pod-with-node-affinity.yaml" %}
+-->
+节点亲和性由PodSpec中 `affinity` 字段的 `nodeAffinity` 字段定义。
 
+下面是一个Pod应用节点亲和的例子：
+
+{% include code.html language="yaml" file="pod-with-node-affinity.yaml" ghlink="/docs/concepts/configuration/pod-with-node-affinity.yaml" %}
+
+<!--
 This node affinity rule says the pod can only be placed on a node with a label whose key is
 `kubernetes.io/e2e-az-name` and whose value is either `e2e-az1` or `e2e-az2`. In addition,
 among nodes that meet that criteria, nodes with a label whose key is `another-node-label-key` and whose
 value is `another-node-label-value` should be preferred.
+-->
+这个亲和规则意思是，Pod只能调度到包含标签 `kubernetes.io/e2e-az-name` 的节点上，而且该标签的值必须为 `e2e-az1` 或者 `e2e-az2`。 同时
+在满足规则的节点中，更倾向使用包含标签 `another-node-label-key` = `another-node-label-value` 的节点。
 
 You can see the operator `In` being used in the example. The new node affinity syntax supports the following operators: `In`, `NotIn`, `Exists`, `DoesNotExist`, `Gt`, `Lt`.
 There is no explicit "node anti-affinity" concept, but `NotIn` and `DoesNotExist` give that behavior.
@@ -274,7 +321,7 @@ If omitted, it defaults to the namespace of the pod where the affinity/anti-affi
 If defined but empty, it means "all namespaces."
 
 All `matchExpressions` associated with `requiredDuringSchedulingIgnoredDuringExecution` affinity and anti-affinity
-must be satisfied for the pod to schedule onto a node. 
+must be satisfied for the pod to schedule onto a node.
 
 For more information on inter-pod affinity/anti-affinity, see the design doc
 [here](https://git.k8s.io/community/contributors/design-proposals/podaffinity.md).
@@ -305,7 +352,7 @@ taint created by the `kubectl taint` line above, and thus a pod with either tole
 to schedule onto `node1`:
 
 ```yaml
-tolerations: 
+tolerations:
 - key: "key"
   operator: "Equal"
   value: "value"
@@ -313,7 +360,7 @@ tolerations:
 ```
 
 ```yaml
-tolerations: 
+tolerations:
 - key: "key"
   operator: "Exists"
   effect: "NoSchedule"
@@ -373,7 +420,7 @@ kubectl taint nodes node1 key2=value2:NoSchedule
 And a pod has two tolerations:
 
 ```yaml
-tolerations: 
+tolerations:
 - key: "key1"
   operator: "Equal"
   value: "value1"
@@ -396,7 +443,7 @@ an optional `tolerationSeconds` field that dictates how long the pod will stay b
 to the node after the taint is added. For example,
 
 ```yaml
-tolerations: 
+tolerations:
 - key: "key1"
   operator: "Equal"
   value: "value1"
@@ -414,7 +461,7 @@ Taints and tolerations are a flexible way to steer pods away from nodes or evict
 pods that shouldn't be running. A few of the use cases are
 
 * **dedicated nodes**: If you want to dedicate a set of nodes for exclusive use by
-a particular set of users, you can add a taint to those nodes (say, 
+a particular set of users, you can add a taint to those nodes (say,
 `kubectl taint nodes nodename dedicated=groupName:NoSchedule`) and then add a corresponding
 toleration to their pods (this would be done most easily by writing a custom
 [admission controller](/docs/admin/admission-controllers/)).
@@ -479,7 +526,7 @@ that the partition will recover and thus the pod eviction can be avoided.
 The toleration the pod would use in that case would look like
 
 ```yaml
-tolerations: 
+tolerations:
 - key: "node.alpha.kubernetes.io/unreachable"
   operator: "Exists"
   effect: "NoExecute"
