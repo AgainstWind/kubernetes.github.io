@@ -9,34 +9,55 @@ redirect_from:
 - "/docs/user-guide/node-selection/index.html"
 ---
 
-You can constrain a [pod](/docs/concepts/workloads/pods/pod/) to only be able to run on particular [nodes](/docs/concepts/nodes/node/) or to prefer to
+<!-- You can constrain a [pod](/docs/concepts/workloads/pods/pod/) to only be able to run on particular [nodes](/docs/concepts/nodes/node/) or to prefer to
 run on particular nodes. There are several ways to do this, and they all use
 [label selectors](/docs/user-guide/labels/) to make the selection.
 Generally such constraints are unnecessary, as the scheduler will automatically do a reasonable placement
 (e.g. spread your pods across nodes, not place the pod on a node with insufficient free resources, etc.)
 but there are some circumstances where you may want more control on a node where a pod lands, e.g. to ensure
 that a pod ends up on a machine with an SSD attached to it, or to co-locate pods from two different
-services that communicate a lot into the same availability zone.
+services that communicate a lot into the same availability zone. -->
 
-You can find all the files for these examples [in our docs
-repo here](https://github.com/kubernetes/kubernetes.github.io/tree/{{page.docsbranch}}/docs/user-guide/node-selection).
+
+用户可以把[pod](/docs/concepts/workloads/pods/pod/)限制在特定的[nodes](/docs/concepts/nodes/node/) 中运行或者让Pod优先运行在指定的node中。可以使用[label selectors](/docs/user-guide/labels/)实现这个目的，其中也包含不同的方法。
+通常情况下我们无需为Pod制定这类约束规则，调度器会自动为Pod分配合适的节点（比如，在为Pod分配节点时，调度器会规避那些资源不足的节点），但在一些场景下，你可能希望可以控制Pod所分配的节点，比如确保Pod最终运行在
+有SSD的机器上，或者让两个通信频繁的服务的Pod分配在相同的可用区（zone）。
+
+<!-- You can find all the files for these examples [in our docs
+repo here](https://github.com/kubernetes/kubernetes.github.io/tree/{{page.docsbranch}}/docs/user-guide/node-selection). -->
+
+相关例子的资料请参考 [我们的文档库](https://github.com/kubernetes/kubernetes.github.io/tree/{{page.docsbranch}}/docs/user-guide/node-selection)。
+
 
 * TOC
 {:toc}
 
-## nodeSelector
+<!-- ## nodeSelector
 
 `nodeSelector` is the simplest form of constraint.
 `nodeSelector` is a field of PodSpec. It specifies a map of key-value pairs. For the pod to be eligible
 to run on a node, the node must have each of the indicated key-value pairs as labels (it can have
 additional labels as well). The most common usage is one key-value pair.
 
-Let's walk through an example of how to use `nodeSelector`.
+Let's walk through an example of how to use `nodeSelector`. -->
 
+## 节点选择器（nodeSelector）
+
+`nodeSelector` 是一个最简单的约束策略。
+`nodeSelector` 是PodSpec的一个字段。它定义了一个key-value的map。适合Pod运行的节点，其label中必须包含该map中的每一个key-value对（当然节点也可以有其他不相关的label），最常用的用法是用一个key-value对。
+
+下面我们通过例子了解一下如何使用 `nodeSelector`。
+
+
+<!--
 ### Step Zero: Prerequisites
 
 This example assumes that you have a basic understanding of Kubernetes pods and that you have [turned up a Kubernetes cluster](https://github.com/kubernetes/kubernetes#documentation).
+-->
+### 步骤0：前期准备
+本例子假设你已经具备对Kubernetes pod的基本理解，并且有一个[运行的Kubernetes集群](https://github.com/kubernetes/kubernetes#documentation)。
 
+<!--
 ### Step One: Attach label to the node
 
 Run `kubectl get nodes` to get the names of your cluster's nodes. Pick out the one that you want to add a label to, and then run `kubectl label nodes <node-name> <label-key>=<label-value>` to add a label to the node you've chosen. For example, if my node name is 'kubernetes-foo-node-1.c.a-robinson.internal' and my desired label is 'disktype=ssd', then I can run `kubectl label nodes kubernetes-foo-node-1.c.a-robinson.internal disktype=ssd`.
@@ -46,7 +67,18 @@ If this fails with an "invalid command" error, you're likely using an older vers
 Also, note that label keys must be in the form of DNS labels (as described in the [identifiers doc](https://git.k8s.io/community/contributors/design-proposals/identifiers.md)), meaning that they are not allowed to contain any upper-case letters.
 
 You can verify that it worked by re-running `kubectl get nodes --show-labels` and checking that the node now has a label.
+-->
+### 步骤1：为节点打标签
 
+运行 `kubectl get nodes`命令获取集群中的所有节点命名。 选择一个你想打标签的节点， 运行`kubectl label nodes <node-name> <label-key>=<label-value>` 命令为该节点增加标签。比如，你的节点名字为'kubernetes-foo-node-1.c.a-robinson.internal'，想要的标签为'disktype=ssd'，然后运行 `kubectl label nodes kubernetes-foo-node-1.c.a-robinson.internal disktype=ssd`即可。
+
+若遇到"invalid command"的错误提示，你可能使用的是老版本的kubectl，老版本的kubectl没有label命令。这种情况参考 [旧版本](https://github.com/kubernetes/kubernetes/blob/a053dbc313572ed60d89dae9821ecab8bfd676dc/examples/node-selection/README.md)了解如何手动设置节点标签。
+
+同时，要注意标签的key的命名规范必须以DNS labels (参考[标示符文档](https://git.k8s.io/community/contributors/design-proposals/identifiers.md))的形式，不允许包含大写字母。
+
+重新运行`kubectl get nodes --show-labels`命令确认节点是否打上标签。
+
+<!--
 ### Step Two: Add a nodeSelector field to your pod configuration
 
 Take whatever pod config file you want to run, and add a nodeSelector section to it, like this. For example, if this is my pod config:
@@ -69,6 +101,31 @@ Then add a nodeSelector like so:
 {% include code.html language="yaml" file="pod.yaml" ghlink="/docs/concepts/configuration/pod.yaml" %}
 
 When you then run `kubectl create -f pod.yaml`, the pod will get scheduled on the node that you attached the label to! You can verify that it worked by running `kubectl get pods -o wide` and looking at the "NODE" that the pod was assigned to.
+-->
+
+### 步骤2： Pod配置增加nodeSelector字段
+
+选择一个你想使用的Pod配置文件，增加nodeSelector字段。 比如，我的Pod配置文件如下：
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  labels:
+    env: test
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+```
+
+按照下面方法增加nodeSelector：
+
+{% include code.html language="yaml" file="pod.yaml" ghlink="/docs/concepts/configuration/pod.yaml" %}
+
+然后运行`kubectl create -f pod.yaml`命令，Pod就会被调度分配到打标签的节点!可以运行 `kubectl get pods -o wide` 命令，查看Pod被分配到的"NODE"。
+
 
 ## Interlude: built-in node labels
 
@@ -81,6 +138,18 @@ with a standard set of labels. As of Kubernetes v1.4 these labels are
 * `beta.kubernetes.io/instance-type`
 * `beta.kubernetes.io/os`
 * `beta.kubernetes.io/arch`
+
+## 提示:节点内置标签
+
+除了 [自定义标签](#步骤1：为节点打标签)，节点也预置了一些标准的标签集， Kubernetes v1.4的标签集包括：
+
+* `kubernetes.io/hostname`
+* `failure-domain.beta.kubernetes.io/zone`
+* `failure-domain.beta.kubernetes.io/region`
+* `beta.kubernetes.io/instance-type`
+* `beta.kubernetes.io/os`
+* `beta.kubernetes.io/arch`
+
 
 ## Affinity and anti-affinity
 
