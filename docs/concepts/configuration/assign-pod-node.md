@@ -294,18 +294,13 @@ in the section [Interlude: built-in node labels](#interlude-built-in-node-labels
 
 Pod间亲和性与反亲和性于Kubernetes 1.4引入。
 该特性使你能够 *基于节点上正在运行的Pod的标签* 为Pod设置节点调度的约束规则，而不是基于节点的标签。 这种规则形式是 “该Pod应该（或者在反亲和中是 不应该）运行在X上，且X上运行着一个或多个符合规则Y的Pod”。
-Y表示为一个LabelSelector，其中包括一个相关的namespace列表（或全部的namespace）；与节点不同，因为Pod需要运行在namespace中（因此，Pod的标签要有明确的namespace），
-
-a label selector over pod labels must specify which namespaces the selector should apply to. X在概念上是节点、机架、云提供商zone、云提供商region等。
-like node, rack, cloud provider zone, cloud provider region, etc. You express it using a `topologyKey` which is the
-key for the node label that the system uses to denote such a topology domain, e.g. see the label keys listed above
-in the section [Interlude: built-in node labels](#interlude-built-in-node-labels).
+Y表示为一个LabelSelector，其中包括一个相关的namespace列表（或全部的namespace）；与节点不同，因为Pod需要运行在namespace中（因此Pod的标签要有明确的namespace），
+作用于Pod标签的标签选择器必须指定选择器作用的namespace。X在概念上是节点、机架、云提供商zone、云提供商region等，可以用节点标签 `topologyKey` 表示该拓扑域，相关例子见[提示:节点内置标签](#interlude-built-in-node-labels)小节。
 
 
 
-As with node affinity, there are currently two types of pod affinity and anti-affinity, called `requiredDuringSchedulingIgnoredDuringExecution` and
-`preferredDuringSchedulingIgnoredDuringExecution` which denote "hard" vs. "soft" requirements.
-See the description in the node affinity section earlier.
+与节点亲和性类似，Pod间亲和性与反亲和性也有两种规则 `requiredDuringSchedulingIgnoredDuringExecution` 与
+`preferredDuringSchedulingIgnoredDuringExecution` ， 分别表示 "硬约束" 与 "软约束" 的需求。可参见先前节点亲和性章节对这两种规则的描述。
 An example of `requiredDuringSchedulingIgnoredDuringExecution` affinity would be "co-locate the pods of service A and service B
 in the same zone, since they communicate a lot with each other"
 and an example `preferredDuringSchedulingIgnoredDuringExecution` anti-affinity would be "spread the pods from this service across zones"
