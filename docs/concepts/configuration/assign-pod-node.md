@@ -297,18 +297,30 @@ Pod间亲和性与反亲和性于Kubernetes 1.4引入。
 Y表示为一个LabelSelector，其中包括一个相关的namespace列表（或全部的namespace）；与节点不同，因为Pod需要运行在namespace中（因此Pod的标签要有明确的namespace），
 作用于Pod标签的标签选择器必须指定选择器作用的namespace。X在概念上是节点、机架、云提供商zone、云提供商region等，可以用节点标签 `topologyKey` 表示该拓扑域，相关例子见[提示:节点内置标签](#interlude-built-in-node-labels)小节。
 
-
-
-与节点亲和性类似，Pod间亲和性与反亲和性也有两种规则 `requiredDuringSchedulingIgnoredDuringExecution` 与
-`preferredDuringSchedulingIgnoredDuringExecution` ， 分别表示 "硬约束" 与 "软约束" 的需求。可参见先前节点亲和性章节对这两种规则的描述。
+<!--
+As with node affinity, there are currently two types of pod affinity and anti-affinity, called `requiredDuringSchedulingIgnoredDuringExecution` and
+`preferredDuringSchedulingIgnoredDuringExecution` which denote "hard" vs. "soft" requirements.
+See the description in the node affinity section earlier.
 An example of `requiredDuringSchedulingIgnoredDuringExecution` affinity would be "co-locate the pods of service A and service B
 in the same zone, since they communicate a lot with each other"
 and an example `preferredDuringSchedulingIgnoredDuringExecution` anti-affinity would be "spread the pods from this service across zones"
 (a hard requirement wouldn't make sense, since you probably have more pods than zones).
+-->
 
+与节点亲和性类似，Pod间亲和性与反亲和性也有两种规则 `requiredDuringSchedulingIgnoredDuringExecution` 与
+`preferredDuringSchedulingIgnoredDuringExecution` ， 分别表示 "硬约束" 与 "软约束" 的需求。可参见先前节点亲和性章节对这两种规则的描述。
+`requiredDuringSchedulingIgnoredDuringExecution` 亲和性示例：“服务A与服务B由于通信频繁，需要把两者的Pod分配在同一zone中”。
+ `preferredDuringSchedulingIgnoredDuringExecution` 反亲和性示例：“把服务的Pod散布在所有zone中”（一条硬约束规则可能不够，因为Pod数量一般多于zone）。
+
+
+<!-- 
 Inter-pod affinity is specified as field `podAffinity` of field `affinity` in the PodSpec.
 And inter-pod anti-affinity is specified as field `podAntiAffinity` of field `affinity` in the PodSpec.
+-->
 
+Pod间亲和性由PodSpec中`affinity` 字段中的`podAffinity` 属性定义，Pod见反亲和性由PodSpec中`affinity` 字段中的 `podAntiAffinity` 属性定义。
+
+<!--
 Here's an example of a pod that uses pod affinity:
 
 {% include code.html language="yaml" file="pod-with-pod-affinity.yaml" ghlink="/docs/concepts/configuration/pod-with-pod-affinity.yaml" %}
@@ -327,7 +339,18 @@ it would mean that the pod cannot schedule onto a node if that node is in the sa
 label having key "security" and value "S2".) See the [design doc](https://git.k8s.io/community/contributors/design-proposals/podaffinity.md).
 for many more examples of pod affinity and anti-affinity, both the `requiredDuringSchedulingIgnoredDuringExecution`
 flavor and the `preferredDuringSchedulingIgnoredDuringExecution` flavor.
+-->
 
+Pod应用Pod亲和性的例子如下：
+{% include code.html language="yaml" file="pod-with-pod-affinity.yaml" ghlink="/docs/concepts/configuration/pod-with-pod-affinity.yaml" %}
+    该Pod的亲和属性定义了一条Pod亲和性规则和一条Pod反亲和性规则。该例子中`podAffinity` 属性为 `requiredDuringSchedulingIgnoredDuringExecution`， `podAntiAffinity` 为
+ `preferredDuringSchedulingIgnoredDuringExecution`。Pod亲和性规则指出该Pod可调度到满足下面条件的节点：节点位于相同的zone，同时至少一个处于运行状态的Pod且包含标签“security”且值为
+ “S1”。（更精确的说法， 若节点N满足下列条件：N包含标签`failure-domain.beta.kubernetes.io/zone`值为V，且节点N上存在至少一个处于运行状态的Pod且包含标签“security”且值为
+ “S1”，则Pod可以运行在节点N上。Pod反亲和性规则表示：若节点上运行着包含标签“security=S2”的Pod，则上面yaml定义的Pod正常情况下不会调度到该节点上。（若`topologyKey` 字段值为 `failure-domain.beta.kubernetes.io/zone` 
+ 则意味着若节点位于该zone且该节点上已经运行着包含标签“security=S2”的Pod，则该节点不能用于调度上面yaml文件中定义的Pod）。 参考 [设计文档](https://git.k8s.io/community/contributors/design-proposals/podaffinity.md)。
+由于关于Pod亲和性与反亲和性的例子非常多，我们仅介绍 `requiredDuringSchedulingIgnoredDuringExecution` 与 `preferredDuringSchedulingIgnoredDuringExecution` 一些例子。
+
+<!--
 The legal operators for pod affinity and anti-affinity are `In`, `NotIn`, `Exists`, `DoesNotExist`.
 
 In principle, the `topologyKey` can be any legal label-key. However,
@@ -338,6 +361,17 @@ empty `topologyKey` is not allowed.
 2. For `RequiredDuringScheduling` pod anti-affinity, the admission controller `LimitPodHardAntiAffinityTopology` was introduced to limit `topologyKey` to `kubernetes.io/hostname`. If you want to make it available for custom topologies, you may modify the admission controller, or simply disable it.
 3. For `PreferredDuringScheduling` pod anti-affinity, empty `topologyKey` is interpreted as "all topologies" ("all topologies" here is now limited to the combination of `kubernetes.io/hostname`, `failure-domain.beta.kubernetes.io/zone` and `failure-domain.beta.kubernetes.io/region`).
 4. Except for the above cases, the `topologyKey` can be any legal label-key.
+-->
+
+Pod亲和性与反亲和性支持的合法操作符包括：`In`、 `NotIn`、 `Exists`、 `DoesNotExist`。
+
+原则上，`topologyKey` 可以为任何合法标签key。然而，考虑到性能和安全，对topologyKey有一些限制：
+
+1. 对于亲和性与 `RequiredDuringScheduling` 类型的pod反亲和性，`topologyKey` 不允许wield空。
+2. 对于 `RequiredDuringScheduling` 类型的pod反亲和性， admission控制器引入了 `LimitPodHardAntiAffinityTopology` 字段把 `topologyKey` 限制为 `kubernetes.io/hostname`。若想使 `topologyKey` 可配置，可以修改admission控制器或禁用它。
+3. 对于 `PreferredDuringScheduling` 类型的pod反亲和性， 空的 `topologyKey` 会被认为是 "all topologies"（这里"all topologies" 包括`kubernetes.io/hostname`、 `failure-domain.beta.kubernetes.io/zone` 以及 `failure-domain.beta.kubernetes.io/region`）。
+4. 除了上面几项， `topologyKey` 可以为任何合法标签key。
+
 
 In addition to `labelSelector` and `topologyKey`, you can optionally specify a list `namespaces`
 of namespaces which the `labelSelector` should match against (this goes at the same level of the definition as `labelSelector` and `topologyKey`).
@@ -349,6 +383,10 @@ must be satisfied for the pod to schedule onto a node.
 
 For more information on inter-pod affinity/anti-affinity, see the design doc
 [here](https://git.k8s.io/community/contributors/design-proposals/podaffinity.md).
+
+ 
+
+
 
 ## Taints and tolerations (beta feature)
 
